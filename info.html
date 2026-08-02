@@ -1,230 +1,84 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>shoutul masteja info</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* CSS RESET & CORE */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body { 
-            background: #000; 
-            font-family: sans-serif; 
-            min-height: 100vh; 
-            display: flex; 
-            flex-direction: column; 
-            /* Halaman sekarang bisa di-scroll ke bawah */
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+    import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+    // PERBAIKAN 1: 'ID aplikasi' diubah menjadi 'appId'
+    const firebaseConfig = { 
+      apiKey : "AIzaSyCtx2nxthZPvrOhItetKKNzCWAr0gyTMtU", 
+      authDomain : "shoutulmasteja.firebaseapp.com", 
+      projectId : "shoutulmasteja", 
+      storageBucket : "shoutulmasteja.firebasestorage.app", 
+      messagingSenderId : "153000633436", 
+      appId : "1:153000633436:web:2a4a469bc647fb0679f299", 
+      measurementId : "G-8TWMTF4H3E" 
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+
+    window.mulaiLogin = () => signInWithPopup(auth, provider);
+
+    // PERBAIKAN 2: Menutup string dengan benar di akhir kalimat
+    window.pakaiTemplate = () => {
+        const input = document.getElementById('input-msg');
+        input.value = "📢 *PENGUMUMAN SHOUTUL MASTEJA*\n\n📍 Alamat: \n🛠 Job: \n🎪 Tempat: \n⏰ Waktu: \n\nhayu urang gembrung!";
+        input.style.height = "140px"; 
+        input.focus();
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if (user) {
+            document.getElementById('login-screen').style.display = 'none';
+            muatPesan();
+        } else {
+            document.getElementById('login-screen').style.display = 'flex';
         }
+    });
 
-        /* HEADER Tetap di Atas */
-        header { 
-            background: #1a1a1a; 
-            padding: 12px; 
-            display: flex; 
-            align-items: center; 
-            gap: 15px; 
-            border-bottom: 2px solid #FFD700;
-            position: sticky;
-            top: 0;
-            z-index: 10;
-        }
-        .group-icon { width: 35px; height: 35px; background: #FFD700; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #000; }
-
-        /* AREA CHAT */
-        #chat-box { 
-            flex: 1; 
-            padding: 15px; 
-            padding-bottom: 20px;
-            display: flex; 
-            flex-direction: column; 
-            gap: 12px;
-            background: #000;
-        }
-
-        /* Gaya Gelembung Pesan */
-        .msg { padding: 10px 14px; border-radius: 15px; max-width: 85%; font-size: 14px; line-height: 1.5; white-space: pre-wrap; word-wrap: break-word; }
-        .mine { align-self: flex-end; background: #FFD700; color: #000; border-bottom-right-radius: 2px; }
-        .others { align-self: flex-start; background: #1a1a1a; color: #FFD700; border: 1px solid #FFD700; border-bottom-left-radius: 2px; }
-
-        /* AREA NAVIGASI BAWAH (Sudah disatukan & posisi naik sedikit) */
-        .bottom-controls {
-            background: #1a1a1a;
-            padding: 12px 12px 35px 12px; /* 35px untuk menaikkan posisi dari bawah layar */
-            display: flex;
-            align-items: flex-end; 
-            gap: 8px;
-            border-top: 1px solid #333;
-            position: sticky;
-            bottom: 0;
-            z-index: 10;
-        }
-
-        .btn-tool {
-            background: #222;
-            color: #FFD700;
-            border: 1px solid #FFD700;
-            width: 42px; 
-            height: 42px;
-            border-radius: 50%;
-            font-size: 16px;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        #chat-form { 
-            flex: 1; 
-            display: flex; 
-            gap: 8px;
-        }
-
-        #input-msg { 
-            flex: 1; 
-            background: #222; 
-            border: 1px solid #FFD700; 
-            color: #fff; 
-            padding: 10px 15px; 
-            border-radius: 20px; 
-            outline: none; 
-            height: 42px; 
-            resize: none;
-            font-size: 14px;
-        }
-
-        .btn-send { 
-            background: #FFD700; 
-            color: #000; 
-            border: none; 
-            width: 42px; 
-            height: 42px; 
-            border-radius: 50%; 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        /* Overlay Login */
-        #login-screen { position: fixed; inset: 0; background: #000; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; }
-        .peci-anim { font-size: 50px; color: #FFD700; margin-bottom: 15px; animation: bounce 2s infinite; }
-        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-    </style>
-</head>
-<body>
-
-    <div id="login-screen">
-        <div class="peci-anim"><i class="fas fa-user-tie"></i></div>
-        <button style="background:#FFD700; border:none; padding:12px 30px; border-radius:25px; font-weight:bold;" onclick="mulaiLogin()">ASUP MAKE GOOGLE</button>
-        <h6 style="margin-top: 15px; color: #666; padding: 0 20px;">Kudu asup make akun google supaya bisa ngirim info</h6>
-    </div>
-
-    <header>
-        <div class="group-icon"><i class="fas fa-crown"></i></div>
-        <div class="group-info">
-            <h4 style="color: #FFD700; font-size: 15px;">shoutul masteja info</h4>
-            <p style="font-size:9px; color:#888;">pencet rada hebel jang hapus pesan</p>
-        </div>
-    </header>
-
-    <div id="chat-box"></div>
-
-    <div class="bottom-controls">
-        <button type="button" class="btn-tool" onclick="pakaiTemplate()" title="Nyieun Pengumuman">
-            <i class="fas fa-bullhorn"></i>
-        </button>
-
-        <form id="chat-form">
-            <textarea id="input-msg" placeholder="Tulis pesan..."></textarea>
-            <button type="submit" class="btn-send"><i class="fas fa-paper-plane"></i></button>
-        </form>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-const firebaseConfig = { 
-  apiKey : "AIzaSyCtx2nxthZPvrOhItetKKNzCWAr0gyTMtU" , 
-  authDomain : "shoutulmasteja.firebaseapp.com" , 
-  projectId : "shoutulmasteja" , 
-  storageBucket : "shoutulmasteja.firebasestorage.app" , 
-  messagingSenderId : "153000633436" , 
-  ID aplikasi : "1:153000633436:web:2a4a469bc647fb0679f299" , 
-  measurementId : "G-8TWMTF4H3E" 
-};
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const provider = new GoogleAuthProvider();
-
-        window.mulaiLogin = () => signInWithPopup(auth, provider);
-
-        window.pakaiTemplate = () => {
-            const input = document.getElementById('input-msg');
-            input.value = "📢 *PENGUMUMAN SHOUTUL MASTEJA*\n\n📍 Alamat: \n💼 Job: \n🏠 Tempat: \n⏰ Waktu: \n\nhayu urang gembrung! 🥁";
-            input.style.height = "140px"; 
-            input.focus();
-        };
-
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.getElementById('login-screen').style.display = 'none';
-                muatPesan();
-            } else {
-                document.getElementById('login-screen').style.display = 'flex';
-            }
-        });
-
-        document.getElementById('chat-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const input = document.getElementById('input-msg');
-            if (!input.value.trim() || !auth.currentUser) return;
-            try {
-                await addDoc(collection(db, "messages"), {
-                    text: input.value,
-                    uid: auth.currentUser.uid,
-                    name: auth.currentUser.displayName,
-                    time: serverTimestamp()
-                });
-                input.value = "";
-                input.style.height = "42px";
-            } catch (err) { alert(err.message); }
-        };
-
-        function muatPesan() {
-            const q = query(collection(db, "messages"), orderBy("time", "asc"), limit(50));
-            onSnapshot(q, (snapshot) => {
-                const box = document.getElementById('chat-box');
-                box.innerHTML = "";
-                snapshot.forEach((docSnap) => {
-                    const d = docSnap.data();
-                    const isMine = d.uid === auth.currentUser.uid;
-                    const div = document.createElement('div');
-                    div.className = `msg ${isMine ? 'mine' : 'others'}`;
-                    div.innerHTML = `<span style="font-size:10px; font-weight:bold; display:block; margin-bottom:4px; color:${isMine?'#000':'#FFD700'}">${d.name}</span>${d.text}`;
-                    
-                    let timer;
-                    div.ontouchstart = () => {
-                        timer = setTimeout(() => {
-                            if (confirm("Hapus chat ieu?")) {
-                                deleteDoc(doc(db, "messages", docSnap.id));
-                            }
-                        }, 800);
-                    };
-                    div.ontouchend = () => clearTimeout(timer);
-
-                    box.appendChild(div);
-                });
-                // Auto scroll ke bawah setiap ada pesan baru
-                window.scrollTo(0, document.body.scrollHeight);
+    document.getElementById('chat-form').onsubmit = async (e) => {
+        e.preventDefault();
+        const input = document.getElementById('input-msg');
+        if (!input.value.trim() || !auth.currentUser) return;
+        try {
+            await addDoc(collection(db, "messages"), {
+                text: input.value,
+                uid: auth.currentUser.uid,
+                name: auth.currentUser.displayName,
+                time: serverTimestamp()
             });
-        }
-    </script>
-</body>
-</html>
+            input.value = "";
+            input.style.height = "42px";
+        } catch (err) { alert(err.message); }
+    };
+
+    function muatPesan() {
+        const q = query(collection(db, "messages"), orderBy("time", "asc"), limit(50));
+        onSnapshot(q, (snapshot) => {
+            const box = document.getElementById('chat-box');
+            box.innerHTML = "";
+            snapshot.forEach((docSnap) => {
+                const d = docSnap.data();
+                const isMine = d.uid === auth.currentUser.uid;
+                const div = document.createElement('div');
+                div.className = `msg ${isMine ? 'mine' : 'others'}`;
+                div.innerHTML = `<span style="font-size:10px; font-weight:bold; display:block; margin-bottom:4px; color:${isMine?'#000':'#FFD700'}">${d.name}</span>${d.text}`;
+                
+                let timer;
+                div.ontouchstart = () => {
+                    timer = setTimeout(() => {
+                        if (confirm("Hapus chat ieu?")) {
+                            deleteDoc(doc(db, "messages", docSnap.id));
+                        }
+                    }, 800);
+                };
+                div.ontouchend = () => clearTimeout(timer);
+
+                box.appendChild(div);
+            });
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+    }
+</script>
